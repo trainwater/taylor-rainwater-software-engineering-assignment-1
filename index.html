@@ -1,0 +1,182 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+</head>
+
+<body>
+    <h1>Tweet JSON analyzer tool</h1> <!--page title header-->
+
+    <button type="button" onclick="getTweets()"> <!--button used to get all tweets, calls the getTweets() method when clicked-->
+        Get all tweets
+    </button>
+
+    <button type="button" onclick="getIDs()">  <!--button used to get all ids, calls the getIDs() method when clicked-->
+        Get all IDs
+    </button><br><br>
+
+    <label for="tweetID">Get a tweet by ID:</label><br> 
+    <input type="text" onfocus="this.value=''" id="tweetID" value="Tweet ID"> <!--text input for a tweet ID-->
+    <button type="button" onclick="getTweet()"> <!--button used to get specific tweets, calls the getTweet() method when clicked-->
+        Get tweet
+    </button><br><br>
+
+    <label for="tweetPostID">Post a tweet:</label><br> 
+    <input type="text" onfocus="this.value=''" id="tweetPostID" value="Tweet ID"><br> <!--text input for a tweet ID-->
+    <!--text area for the body of the tweet-->
+    <textarea id="tweetBody" onfocus="this.value=''" name="Body Text" rows="4" cols="50">Tweet Body
+    </textarea><br><br>
+    <button type="button" onclick="postTweet()"> <!--button used to get all tweets, calls the getTweets() method when clicked-->
+        Post Tweet
+    </button><br><br>
+
+    <label for="screenName">Update screen name:</label><br> 
+    <input type="text" onfocus="this.value=''" id="screenName" value="Screen Name"> <!--text input for a screen name-->
+    <input type="text" onfocus="this.value=''" id="newScreenName" value="New Screen Name"> <!--text input for the new screen name-->
+    <button type="button" onclick="updateName()"> <!--button used to update a screen name, calls the updateName() method when clicked-->
+        Update Screen Name
+    </button><br><br>
+
+    <label for="tweetDeleteID">Delete a tweet:</label><br> 
+    <input type="text" onfocus="this.value=''" id="tweetDeleteID" value="Tweet ID"> <!--text input for a tweet ID-->
+    <button type="button" onclick="deleteTweet()"> <!--button used to get all tweets, calls the getTweets() method when clicked-->
+        Delete Tweet
+    </button><br><br>
+
+    <p id="display"> <!--text display area to show all data recieved by the client-->
+
+    </p>
+
+    <script>
+        //gets all tweets from the favs.JSON file stored in the server
+        function getTweets() {
+            var req = new XMLHttpRequest(); //object used to send HTTP requests
+            req.open('GET', 'http://127.0.0.1:3000/tweets'); //get request used to retrieve tweets
+
+            req.onload = () => {
+                var data = JSON.parse(req.response); //parse the data sent from the HTTP response
+                console.log(data);
+
+                var tweets = '';
+                for (let i = 0; i < data.length; i++) { //iterate through the list of tweets creatingf a string containing the information for the user
+                    tweets += data[i].created_at + ': ' + data[i].text + '<br>';
+                }
+
+                document.getElementById("display").innerHTML = tweets; //display the information on screen
+            }
+
+            req.send();
+        };
+
+        //gets all tweet ids from the favs.JSON file stored in the server
+        function getIDs() {
+            var req = new XMLHttpRequest();
+            req.open('GET', 'http://127.0.0.1:3000/ids'); //get request used to retrieve the ids
+
+            req.onload = () => {
+                var data = JSON.parse(req.response);
+                console.log(data);
+
+                var ids = '';
+                for (let i = 0; i < data.length; i++) { //iterate through every id and create a string containing the information for the user
+                    ids += data[i].user.screen_name + ": " + data[i].user.id_str + '<br>';
+                }
+
+                document.getElementById("display").innerHTML = ids; //display the information on screen
+            }
+
+            req.send();
+        };
+
+        //gets a specific tweet from the server given the tweet id
+        function getTweet() {
+            var ID = document.getElementById("tweetID").value;
+
+            var req = new XMLHttpRequest();
+            req.open('GET', 'http://127.0.0.1:3000/tweets/' + ID); //get request used to retrieve tweets
+
+            req.onload = () => {
+                try {
+                    var data = JSON.parse(req.response);
+                    console.log(data);
+
+                    document.getElementById("display").innerHTML = data.created_at + ': ' + data.text + '<br>'; //display the information on screen
+                }
+                catch (e) {
+                    alert(req.response);
+                }
+            }
+
+            req.send();
+        };
+
+        //adds a new tweet to the favs.JSON file given a new tweet id and body text
+        function postTweet() {
+            var postID = document.getElementById("tweetPostID").value; //id used to post the new tweet
+            var text = document.getElementById("tweetBody").value; //text of the new tweet
+
+            var req = new XMLHttpRequest();
+            req.open('POST', 'http://127.0.0.1:3000/tweets'); //post request used to create tweets
+
+            req.setRequestHeader('Content-type', 'application/json');
+
+            req.onload = () => {
+                console.log(req.response);
+
+                if (req.status == 400) { //if the tweet wa invalid a 400 request is returned
+                    alert('400: You must enter a valid ID and body text');
+                }
+                else { //otherwise the tweet was added to the favs.JSON file serverside
+                    alert('Request processed')
+                }
+            }
+
+            req.send(JSON.stringify({ "id_str": postID, "text": text })); //send the tweet id and text to the server in an HTTP request
+        };
+
+        //updates a user's screen name given the old one and the new one
+        function updateName() {
+            var name = document.getElementById("screenName").value; //the old screen name
+            var newName = document.getElementById("newScreenName").value; //the new screen name
+
+            var req = new XMLHttpRequest();
+            req.open('PUT', 'http://127.0.0.1:3000/account/' + name);  //put request used to update screen names
+
+            req.setRequestHeader('Content-type', 'application/json');
+
+            req.onload = () => {
+                console.log(req.response);
+
+                if (req.status == 404) { //if the old name does not exist in favs.JSON a 404 status is returned
+                    alert('404: That screen name does not exist');
+                }
+                else {
+                    alert('Request processed')
+                }
+            }
+
+            req.send(JSON.stringify({ "screen_name": newName })); //send the new screen name in the HTTP request
+        };
+
+        //deletes a tweet from the favs.JSON file given it's tweet id
+        function deleteTweet() {
+            var id = document.getElementById("tweetDeleteID").value; //the id of the tweet to be deleted
+
+            var req = new XMLHttpRequest();
+            req.open('DELETE', 'http://127.0.0.1:3000/tweets/' + id); //delete request used to delete tweets
+
+            req.onload = () => {
+                console.log(req.response);
+
+                if (req.status == 404) { //if the tweet id does not exist in favs.JSON then a 404 status is returned
+                    alert('404: That tweet does not exist');
+                }
+                else {
+                    alert('Request processed')
+                }
+            }
+
+            req.send(); //send the HTTP request
+        }
+    </script>
+</body>
+</html>
